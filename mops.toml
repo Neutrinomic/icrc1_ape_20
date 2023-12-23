@@ -1,3 +1,6 @@
 [dependencies]
 base = "0.9.8"
 vector = "0.2.0"
+itertools = "0.1.2"
+test = "1.2.0"
+map = "9.0.1"
