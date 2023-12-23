@@ -18,54 +18,20 @@ import Iter "mo:base/Iter";
 
 actor {
 
-    stable var indexBlock = 4910;
+    stable var indexBlock = 4910; // start from block
     stable var processed = 0;
     stable var timercounter = 0;
     stable var totalMinted = 0;
     stable let accounts = Map.new<Principal, Nat64>();
 
+    // Configurable
+    let minter = Principal.fromText("bqzgt-iiaaa-aaaai-qpdoa-cai");
     let ledger = actor ("ss2fx-dyaaa-aaaar-qacoq-cai") : Ledger.Self;
+    let mintMsg = "🍌🍌🍌";
 
     let log = Vector.new<Text>();
-    var stopped = true;
-
-    public shared ({ caller }) func start() : async () {
-        assert (caller == Principal.fromText("wgjuz-uw44a-ow3ml-e6ytr-b534d-7ie55-6snjg-62x6h-olo6a-jj5v3-eae"));
-        stopped := false;
-    };
-
-    public shared ({ caller }) func stop() : async () {
-        assert (caller == Principal.fromText("wgjuz-uw44a-ow3ml-e6ytr-b534d-7ie55-6snjg-62x6h-olo6a-jj5v3-eae"));
-        stopped := true;
-    };
-
-    public shared ({ caller }) func go(t : Text) : async () {
-        assert (Principal.toText(caller).size() > 35); // Ignore all canister calls so we don't allow frontrunning
-        assert (stopped == false);
-
-        let msg = Msg.Msg(t);
-
-        ledger.icrc2_transfer_from({
-            from = { owner = caller; subaccount = null };
-            spender_subaccount = null;
-            to = {
-                owner = msg.getOwner();
-                subaccount = ?msg.getSubaccount();
-            };
-            fee = null;
-            memo = ?msg.getMemo();
-            from_subaccount = null;
-            created_at_time = null; // perhaps will be useful for ordering
-            amount = 0;
-        });
-
-    };
 
     private func qtimer() : async () {
-        if (stopped == false) {
-            ignore Timer.setTimer(#seconds 60, qtimer);
-            return;
-        };
         timercounter := timercounter + 1;
         try {
             await proc();
@@ -83,7 +49,7 @@ actor {
             length = 1;
         });
 
-        if (rez.transactions.size() > 0) return Msg.fromBlock(rez.transactions[0]);
+        if (rez.transactions.size() > 0) return Msg.fromBlock(minter, rez.transactions[0]);
 
         let atx = rez.archived_transactions[0];
         let rezarc = await atx.callback({
@@ -91,15 +57,15 @@ actor {
             length = atx.length;
         });
 
-        Msg.fromBlock(rezarc.transactions[0]);
+        Msg.fromBlock(minter, rezarc.transactions[0]);
     };
 
     private func processtx(transactions : [Ledger.Transaction]) {
         for (t in transactions.vals()) {
             processed := processed + 1;
-            switch (Msg.fromBlock(t)) {
+            switch (Msg.fromBlock(minter, t)) {
                 case (?(owner, msg)) {
-                    if (msg == "🍌🍌🍌") balance_add(owner, 1);
+                    if (msg == mintMsg) balance_add(owner, 1);
                 };
                 case (null)();
             };
@@ -145,8 +111,8 @@ actor {
         Option.get(Map.get(accounts, phash, p), 0 : Nat64);
     };
 
-    public query func stats() : async (Nat, Nat, Bool, Nat) {
-        (processed, totalMinted, stopped, timercounter);
+    public query func stats() : async (Nat, Nat, Nat) {
+        (processed, totalMinted, timercounter);
     };
 
     public query func getlog() : async [Text] {
