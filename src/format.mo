@@ -5,13 +5,13 @@ import I "mo:itertools/Iter";
 import Iter "mo:base/Iter";
 import Nat8 "mo:base/Nat8";
 import Nat64 "mo:base/Nat64";
+import Debug "mo:base/Debug";
 
 module {
 
     // This file is just unused protocol draft
 
     public type Token = Nat32;
-    public type Pair = (Token, Token);
 
     public type Op = {
         #transfer : {
@@ -21,28 +21,19 @@ module {
         #burn : {
             amount : Nat64;
         };
-        #swap_add : {
-            pair : Pair;
-            amount : Nat64;
-        };
-        #swap_rem : {
-            pair : Pair;
-            amount : Nat64;
-        };
-        #swap_create : Pair;
-        #swap : {
-            pair : Pair;
-            amount : Nat64;
-            slippage : Float;
-        };
     };
 
     private func EPrincipal(x : Principal) : [Nat8] {
-        Iter.toArray(I.pad(Blob.toArray(Principal.toBlob(x)).vals(), 28, 0 : Nat8));
+        let pa = Blob.toArray(Principal.toBlob(x));
+        let pasize : Nat8 = Nat8.fromNat(pa.size());
+        let merged = I.flattenArray<Nat8>([[pasize], pa]);
+        Iter.toArray(I.pad(merged, 30, 0 : Nat8));
     };
 
     private func DPrincipal(x : [Nat8]) : Principal {
-        Principal.fromBlob(Blob.fromArray(x));
+        let size = Nat8.toNat(x[0]);
+        let blob = Blob.fromArray(Array.subArray(x, 1, size));
+        Principal.fromBlob(blob);
     };
 
     private func ENat64(value : Nat64) : [Nat8] {
@@ -76,8 +67,13 @@ module {
         switch (b[0]) {
             case (0) {
                 ? #transfer({
-                    to = DPrincipal(Array.subArray(b, 1, 28));
-                    amount = DNat64(Array.subArray(b, 29, 8));
+                    to = DPrincipal(Array.subArray(b, 1, 30));
+                    amount = DNat64(Array.subArray(b, 31, 8));
+                });
+            };
+            case (1) {
+                ? #burn({
+                    amount = DNat64(Array.subArray(b, 1, 8));
                 });
             };
             case (_) null;
