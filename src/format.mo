@@ -11,7 +11,6 @@ module {
     // This file is just unused protocol draft
 
     public type Token = Nat32;
-    public type Pair = (Token, Token);
 
     public type Op = {
         #transfer : {
@@ -21,20 +20,7 @@ module {
         #burn : {
             amount : Nat64;
         };
-        #swap_add : {
-            pair : Pair;
-            amount : Nat64;
-        };
-        #swap_rem : {
-            pair : Pair;
-            amount : Nat64;
-        };
-        #swap_create : Pair;
-        #swap : {
-            pair : Pair;
-            amount : Nat64;
-            slippage : Float;
-        };
+
     };
 
     private func EPrincipal(x : Principal) : [Nat8] {

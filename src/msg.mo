@@ -9,9 +9,8 @@ module {
 
     let prefix : [Nat8] = [100, 101, 2]; // 2 at the end is fixed
 
-    public class Msg(t : Text) {
+    public class Msg(buf : [Nat8]) {
 
-        let buf = Blob.toArray(Text.encodeUtf8(t));
         let bsize = buf.size();
 
         assert (bsize < 137);
@@ -31,7 +30,7 @@ module {
         };
     };
 
-    public func fromBlock(minter : Principal, c : Ledger.Transaction) : ?(Principal, Text) {
+    public func fromBlock(minter : Principal, c : Ledger.Transaction) : ?(Principal, [Nat8]) {
         let ?transfer = c.transfer else return null;
         let ?memo = transfer.memo else return null;
         let ?subaccount = transfer.to.subaccount else return null;
@@ -54,15 +53,13 @@ module {
         let sa = Blob.toArray(subaccount);
         if (sa.size() < 32) return null;
         let ta = Array.subArray(sa, 0, 1);
-        let textsize = Nat8.toNat(ta[0]);
+        let msgsize = Nat8.toNat(ta[0]);
         let sa2 = Array.subArray(sa, 1, 31);
         let fin = Array.append<Nat8>(Array.append<Nat8>(pb, sa2), bm);
-        if (fin.size() < textsize) return null;
-        let f2 = Array.subArray<Nat8>(fin, 0, textsize);
+        if (fin.size() < msgsize) return null;
+        let f2 = Array.subArray<Nat8>(fin, 0, msgsize);
 
-        let bbl = Blob.fromArray(f2);
-        let ?txt = Text.decodeUtf8(bbl) else return null;
-        ?(transfer.from.owner, txt);
+        ?(transfer.from.owner, f2);
     };
 
 };
