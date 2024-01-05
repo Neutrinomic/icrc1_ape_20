@@ -46,6 +46,8 @@ actor {
     public shared ({ caller }) func op(o : F.Op) : async () {
         let msg = Msg.Msg(F.encode(o));
 
+        if (o == #mint and cur_mint_transactions >= max_mint_transactions) Debug.trap("Can't mint more");
+
         ledger.icrc2_transfer_from({
             from = { owner = caller; subaccount = null };
             spender_subaccount = null;
