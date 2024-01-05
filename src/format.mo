@@ -27,7 +27,7 @@ module {
         let pa = Blob.toArray(Principal.toBlob(x));
         let pasize : Nat8 = Nat8.fromNat(pa.size());
         let merged = I.flattenArray<Nat8>([[pasize], pa]);
-        Iter.toArray(I.pad(merged, 29, 0 : Nat8));
+        Iter.toArray(I.pad(merged, 30, 0 : Nat8));
     };
 
     private func DPrincipal(x : [Nat8]) : Principal {
@@ -67,8 +67,8 @@ module {
         switch (b[0]) {
             case (0) {
                 ? #transfer({
-                    to = DPrincipal(Array.subArray(b, 1, 29));
-                    amount = DNat64(Array.subArray(b, 30, 8));
+                    to = DPrincipal(Array.subArray(b, 1, 30));
+                    amount = DNat64(Array.subArray(b, 31, 8));
                 });
             };
             case (1) {
