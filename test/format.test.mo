@@ -18,6 +18,34 @@ test(
 );
 
 test(
+    "message - transfer - self auth principal",
+    func() {
+        let msg : F.Op = #transfer({
+            to = Principal.fromText("vwng4-j5dgs-e5kv2-ofyq2-hc4be-7u2fn-mmncn-u7dhj-nzkyq-vktfa-xqe");
+            amount = 2324;
+        });
+        let encoded = F.encode(msg);
+        let ?decoded = F.decode(encoded) else Debug.trap("failed to decode");
+
+        assert decoded == msg;
+    },
+);
+
+test(
+    "message - transfer - system principal",
+    func() {
+        let msg : F.Op = #transfer({
+            to = Principal.fromText("aaaaa-aa");
+            amount = 2324;
+        });
+        let encoded = F.encode(msg);
+        let ?decoded = F.decode(encoded) else Debug.trap("failed to decode");
+
+        assert decoded == msg;
+    },
+);
+
+test(
     "message - transfer big amount",
     func() {
         let msg : F.Op = #transfer({
