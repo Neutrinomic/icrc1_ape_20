@@ -9,8 +9,6 @@ import Debug "mo:base/Debug";
 
 module {
 
-    // This file is just unused protocol draft
-
     public type Token = Nat32;
 
     public type Op = {
