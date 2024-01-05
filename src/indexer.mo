@@ -22,13 +22,14 @@ actor {
     stable var indexBlock = 4910; // start from block
     stable var processed = 0;
     stable var timercounter = 0;
-    stable var totalMinted = 0;
     stable let accounts = Map.new<Principal, Nat64>();
 
     // Configurable
     let minter = Principal.fromText("bqzgt-iiaaa-aaaai-qpdoa-cai");
     let ledger = actor ("ss2fx-dyaaa-aaaar-qacoq-cai") : Ledger.Self;
-
+    let mint_per_transaction = 1;
+    let max_mint_transactions = 200000;
+    stable var cur_mint_transactions = 200000; // Set to 0 to allow minting
     let log = Vector.new<Text>();
 
     private func qtimer() : async () {
@@ -60,26 +61,27 @@ actor {
         });
     };
 
-    public func decode_block(id : Nat) : async ?(Principal, F.Op) {
+    // Debug:
+    // public func decode_block(id : Nat) : async ?(Principal, F.Op) {
 
-        let rez = await ledger.get_transactions({
-            start = id;
-            length = 1;
-        });
+    //     let rez = await ledger.get_transactions({
+    //         start = id;
+    //         length = 1;
+    //     });
 
-        let txenc = if (rez.transactions.size() > 0) { rez.transactions[0] } else {
-            let atx = rez.archived_transactions[0];
-            let rezarc = await atx.callback({
-                start = atx.start;
-                length = atx.length;
-            });
-            rezarc.transactions[0];
-        };
+    //     let txenc = if (rez.transactions.size() > 0) { rez.transactions[0] } else {
+    //         let atx = rez.archived_transactions[0];
+    //         let rezarc = await atx.callback({
+    //             start = atx.start;
+    //             length = atx.length;
+    //         });
+    //         rezarc.transactions[0];
+    //     };
 
-        let ?(owner, msg) = Msg.fromBlock(minter, txenc) else return null;
-        let ?decoded = F.decode(msg) else return null;
-        ?(owner, decoded);
-    };
+    //     let ?(owner, msg) = Msg.fromBlock(minter, txenc) else return null;
+    //     let ?decoded = F.decode(msg) else return null;
+    //     ?(owner, decoded);
+    // };
 
     private func processtx(transactions : [Ledger.Transaction]) {
         for (t in transactions.vals()) {
@@ -95,6 +97,12 @@ actor {
                         };
                         case (? #burn({ amount })) {
                             ignore balance_rem(owner, amount);
+                        };
+                        case (#mint) {
+                            if (cur_mint_transactions < max_mint_transactions) {
+                                balance_add(owner, mint_per_transaction);
+                                cur_mint_transactions += 1;
+                            };
                         };
                         case (_)();
                     };
@@ -157,7 +165,7 @@ actor {
     };
 
     public query func stats() : async (Nat, Nat, Nat) {
-        (processed, totalMinted, timercounter);
+        (processed, cur_mint_transactions, timercounter);
     };
 
     public query func getlog() : async [Text] {

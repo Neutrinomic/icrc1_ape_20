@@ -21,6 +21,7 @@ module {
         #burn : {
             amount : Nat64;
         };
+        #mint;
     };
 
     private func EPrincipal(x : Principal) : [Nat8] {
@@ -59,6 +60,7 @@ module {
         switch (op) {
             case (#transfer({ to; amount })) Iter.toArray(I.flattenArray([[0 : Nat8], EPrincipal(to), ENat64(amount)]));
             case (#burn({ amount })) Iter.toArray(I.flattenArray([[1 : Nat8], ENat64(amount)]));
+            case (#mint)[2];
             case (_)[];
         };
     };
@@ -75,6 +77,9 @@ module {
                 ? #burn({
                     amount = DNat64(Array.subArray(b, 1, 8));
                 });
+            };
+            case (2) {
+                ? #mint;
             };
             case (_) null;
         };
