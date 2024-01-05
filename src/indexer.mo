@@ -39,7 +39,7 @@ actor {
             Vector.add(log, Error.message(e));
         };
 
-        ignore Timer.setTimer(#seconds 0, qtimer);
+        ignore Timer.setTimer(#seconds 1, qtimer);
     };
 
     public shared ({ caller }) func op(o : F.Op) : async () {
