@@ -60,22 +60,25 @@ actor {
         });
     };
 
-    public func decode_block(id : Nat) : async ?(Principal, [Nat8]) {
+    public func decode_block(id : Nat) : async ?(Principal, F.Op) {
 
         let rez = await ledger.get_transactions({
             start = id;
             length = 1;
         });
 
-        if (rez.transactions.size() > 0) return Msg.fromBlock(minter, rez.transactions[0]);
+        let txenc = if (rez.transactions.size() > 0) { rez.transactions[0] } else {
+            let atx = rez.archived_transactions[0];
+            let rezarc = await atx.callback({
+                start = atx.start;
+                length = atx.length;
+            });
+            rezarc.transactions[0];
+        };
 
-        let atx = rez.archived_transactions[0];
-        let rezarc = await atx.callback({
-            start = atx.start;
-            length = atx.length;
-        });
-
-        Msg.fromBlock(minter, rezarc.transactions[0]);
+        let ?(owner, msg) = Msg.fromBlock(minter, txenc) else return null;
+        let ?decoded = F.decode(msg) else return null;
+        ?(owner, decoded);
     };
 
     private func processtx(transactions : [Ledger.Transaction]) {
