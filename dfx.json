@@ -1,9 +1,5 @@
 {
   "canisters": {
-    "minter": {
-      "main": "src/minter.mo",
-      "type": "motoko"
-    },
     "indexer": {
       "main": "src/indexer.mo",
       "type": "motoko"
