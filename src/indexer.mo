@@ -16,6 +16,7 @@ import Nat64 "mo:base/Nat64";
 import I "mo:itertools/Iter";
 import Iter "mo:base/Iter";
 import F "./format";
+import Debug "mo:base/Debug";
 
 actor {
 
@@ -25,28 +26,32 @@ actor {
     stable let accounts = Map.new<Principal, Nat64>();
 
     // Configurable
-    let minter = Principal.fromText("bqzgt-iiaaa-aaaai-qpdoa-cai");
     let ledger = actor ("ss2fx-dyaaa-aaaar-qacoq-cai") : Ledger.Self;
-    let mint_per_transaction = 1;
+    let minter = Principal.fromText("bqzgt-iiaaa-aaaai-qpdoa-cai"); // <-- this canister or the minter
+    let mint_per_transaction : Nat64 = 1;
     let max_mint_transactions = 200000;
+     
+     
     stable var cur_mint_transactions = 200000; // Set to 0 to allow minting
     let log = Vector.new<Text>();
 
-    private func qtimer() : async () {
-        timercounter := timercounter + 1;
-        try {
-            await proc();
-        } catch (e) {
-            Vector.add(log, Error.message(e));
-        };
-
-        ignore Timer.setTimer(#seconds 1, qtimer);
-    };
 
     public shared ({ caller }) func op(o : F.Op) : async () {
+
+        switch(o) {
+            case (#mint) {
+                if (Principal.toText(caller).size() <= 35) Debug.trap("Can't mint from canisters");
+                if (cur_mint_transactions >= max_mint_transactions) Debug.trap("Can't mint more");
+            };
+            case (#deploy(_)) {
+                if (not Principal.isController(caller)) Debug.trap("Can't deploy");    
+            };
+            case (_) ();
+        };
+            
+
         let msg = Msg.Msg(F.encode(o));
 
-        if (o == #mint and cur_mint_transactions >= max_mint_transactions) Debug.trap("Can't mint more");
 
         ledger.icrc2_transfer_from({
             from = { owner = caller; subaccount = null };
@@ -100,7 +105,7 @@ actor {
                         case (? #burn({ amount })) {
                             ignore balance_rem(owner, amount);
                         };
-                        case (#mint) {
+                        case (? #mint) {
                             if (cur_mint_transactions < max_mint_transactions) {
                                 balance_add(owner, mint_per_transaction);
                                 cur_mint_transactions += 1;
@@ -160,7 +165,6 @@ actor {
         true;
     };
 
-    ignore Timer.setTimer(#seconds 0, qtimer);
 
     public query func balance_of(p : Principal) : async Nat64 {
         Option.get(Map.get(accounts, phash, p), 0 : Nat64);
@@ -173,5 +177,19 @@ actor {
     public query func getlog() : async [Text] {
         Vector.toArray(log);
     };
+
+    private func qtimer() : async () {
+        timercounter := timercounter + 1;
+        try {
+            await proc();
+        } catch (e) {
+            Vector.add(log, Error.message(e));
+        };
+
+        ignore Timer.setTimer(#seconds 1, qtimer);
+    };
+
+    ignore Timer.setTimer(#seconds 0, qtimer);
+
 
 };

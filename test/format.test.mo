@@ -71,3 +71,18 @@ test(
         assert decoded == msg;
     },
 );
+
+
+test(
+    "message - deploy",
+    func() {
+        let msg : F.Op = #deploy({
+            ticker = "GIG";
+            name = "Giggles🍌";
+        });
+        let encoded = F.encode(msg);
+        
+        let ?decoded = F.decode(encoded) else Debug.trap("failed to decode");
+        assert decoded == msg;
+    },
+);

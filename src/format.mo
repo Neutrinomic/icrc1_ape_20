@@ -6,6 +6,7 @@ import Iter "mo:base/Iter";
 import Nat8 "mo:base/Nat8";
 import Nat64 "mo:base/Nat64";
 import Debug "mo:base/Debug";
+import Text "mo:base/Text";
 
 module {
 
@@ -14,6 +15,10 @@ module {
     public type Token = Nat32;
 
     public type Op = {
+        #deploy : {
+            ticker: Text;
+            name: Text;
+        };
         #transfer : {
             to : Principal;
             amount : Nat64;
@@ -35,6 +40,18 @@ module {
         let size = Nat8.toNat(x[0]);
         let blob = Blob.fromArray(Array.subArray(x, 1, size));
         Principal.fromBlob(blob);
+    };
+
+    private func EText(t: Text) : [Nat8] {
+      let buf = Blob.toArray(Text.encodeUtf8(t));
+      let bsize = Nat8.fromNat(buf.size());
+      Iter.toArray(I.flattenArray<Nat8>([[bsize], buf]));
+    };
+
+    private func DText(e: [Nat8]) : ?Text {
+      let size = Nat8.toNat(e[0]);
+      let buf = Array.subArray(e, 1, size);
+      Text.decodeUtf8(Blob.fromArray(buf));
     };
 
     private func ENat64(value : Nat64) : [Nat8] {
@@ -61,11 +78,13 @@ module {
             case (#transfer({ to; amount })) Iter.toArray(I.flattenArray([[0 : Nat8], EPrincipal(to), ENat64(amount)]));
             case (#burn({ amount })) Iter.toArray(I.flattenArray([[1 : Nat8], ENat64(amount)]));
             case (#mint)[2];
-            case (_)[];
+            case (#deploy({ ticker; name })) Iter.toArray(I.flattenArray([[3 : Nat8], EText(ticker), EText(name)]));
         };
     };
 
     public func decode(b : [Nat8]) : ?Op {
+        let bsize:Nat = b.size();
+
         switch (b[0]) {
             case (0) {
                 ? #transfer({
@@ -80,6 +99,15 @@ module {
             };
             case (2) {
                 ? #mint;
+            };
+            case (3) {
+                do ? { 
+                    let ticker_len = Nat8.toNat(b[1]);
+                    #deploy({
+                        ticker = DText(Array.subArray(b, 1, bsize - 1:Nat))!;
+                        name = DText(Array.subArray(b, 2+ticker_len , bsize - 2:Nat - ticker_len:Nat))!;
+                    });
+                }
             };
             case (_) null;
         };
